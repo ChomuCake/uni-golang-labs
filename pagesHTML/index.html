@@ -1,189 +1,232 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Finance Tracker</title>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Finance Tracker</h1>
 
     <!-- Registration Form -->
     <h2>Registration</h2>
     <form action="/register" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required><br>
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required /><br />
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required><br>
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required /><br />
 
-        <input type="submit" value="Register">
+      <input type="submit" value="Register" />
     </form>
 
     <!-- Login Form -->
     <h2>Login</h2>
     <form action="/login" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required><br>
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required /><br />
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required><br>
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required /><br />
 
-        <input type="submit" value="Login">
+      <input type="submit" value="Login" />
     </form>
 
     <!-- Expenses Form -->
     <h2>Add Expense</h2>
     <form action="/expenses" method="POST">
-        <label for="category">Category:</label>
-        <input type="text" id="category" name="category" required><br>
+      <label for="category">Category:</label>
+      <input type="text" id="category" name="category" required /><br />
 
-        <label for="amount">Amount:</label>
-        <input type="number" id="amount" name="amount" required><br>
+      <label for="amount">Amount:</label>
+      <input type="number" id="amount" name="amount" required /><br />
 
-        <input type="submit" value="Add Expense">
+      <input type="submit" value="Add Expense" />
     </form>
 
-    
     <!-- Expenses Table -->
-<h2>Expenses</h2>
-<table id="expenses-table">
-    <thead>
+    <h2>Expenses</h2>
+    <div>
+      Sort By:
+      <select id="sort-by" name="sort-by">
+        <option value="day">Day</option>
+        <option value="month">Month</option>
+        <option value="all">All</option>
+      </select>
+      <button id="get-expenses">Get Expenses</button>
+    </div>
+    <table id="expenses-table">
+      <thead>
         <tr>
-            <th>Category</th>
-            <th>Amount</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Action</th>
         </tr>
-    </thead>
-    <tbody id="expenses-list"></tbody>
-</table>
+      </thead>
+      <tbody id="expenses-list"></tbody>
+    </table>
 
-<!-- Total Expenses -->
-Total Expenses:
-<p id="total-expenses"></p>
+    <!-- Total Expenses -->
+    <p id="total-expenses"></p>
 
-<!-- Get Expenses Button -->
-<button id="get-expenses">Get Expenses</button>
+    <script>
+      function deleteExpense(expenseID) {
+        const options = {
+          method: "DELETE",
+        };
+        fetch("/expenses/" + expenseID, options)
+          .then((response) => {
+            if (response.ok) {
+              alert("Expense deleted successfully");
+              fetchExpenses(); // Refresh the expenses table
+            } else {
+              alert("Failed to delete expense");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+      // Fetch expenses data and display them in the table
+      function fetchExpenses(sortBy) {
+        let url = "/expenses";
+        if (sortBy) {
+          url += `?sort=${sortBy}`;
+        }
 
-<script>
-    // Fetch expenses data and display them in the table
-    function fetchExpenses() {
-        fetch('/expenses')
-            .then(response => response.json())
-            .then(expenses => {
-                const expensesList = document.getElementById('expenses-list');
-                expensesList.innerHTML = '';
+        fetch(url)
+          .then((response) => response.json())
+          .then((expenses) => {
+            const expensesList = document.getElementById("expenses-list");
+            expensesList.innerHTML = "";
 
-                let totalAmount = 0;
+            let totalAmount = 0;
 
-                expenses.forEach(expense => {
-                    const row = document.createElement('tr');
-                    const categoryCell = document.createElement('td');
-                    const amountCell = document.createElement('td');
+            expenses.forEach((expense) => {
+              const row = document.createElement("tr");
+              const categoryCell = document.createElement("td");
+              const amountCell = document.createElement("td");
+              const actionCell = document.createElement("td");
+              const deleteButton = document.createElement("button");
 
-                    categoryCell.innerText = expense.category;
-                    amountCell.innerText = expense.amount;
+              categoryCell.innerText = expense.category;
+              amountCell.innerText = expense.amount;
+              deleteButton.innerText = "Delete";
+              deleteButton.addEventListener("click", function () {
+                deleteExpense(expense.id);
+              });
 
-                    totalAmount += expense.amount;
-
-                    row.appendChild(categoryCell);
-                    row.appendChild(amountCell);
-                    expensesList.appendChild(row);
-                });
-
-                const totalExpenses = document.getElementById('total-expenses');
-                totalExpenses.innerText = `Total: $${totalAmount}`;
-            })
-            .catch(error => {
-                console.error('Error:', error);
+              totalAmount += expense.amount;
+              actionCell.appendChild(deleteButton);
+              row.appendChild(actionCell);
+              row.appendChild(categoryCell);
+              row.appendChild(amountCell);
+              expensesList.appendChild(row);
             });
-    }
 
-        // Set content type header to JSON for registration form
-        document.querySelector('form[action="/register"]').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            const options = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            };
-            
-            fetch(form.action, options)
-                .then(response => {
-                    if (response.ok) {
-                        alert('Registration successful');
-                    } else {
-                        alert('Registration failed');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+            const totalExpenses = document.getElementById("total-expenses");
+            totalExpenses.innerText = `Total: $${totalAmount}`;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+
+      // Set content type header to JSON for registration form
+      document
+        .querySelector('form[action="/register"]')
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const form = e.target;
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+          const options = {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          };
+
+          fetch(form.action, options)
+            .then((response) => {
+              if (response.ok) {
+                alert("Registration successful");
+              } else {
+                alert("Registration failed");
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
         });
 
-        // JSON for log form
-        document.querySelector('form[action="/login"]').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            const options = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            };
+      // JSON for log form
+      document
+        .querySelector('form[action="/login"]')
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const form = e.target;
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+          const options = {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          };
 
-            fetch(form.action, options)
-                .then(response => {
-                    if (response.ok) {
-                        alert('Login successful');
-                    } else {
-                        alert('Login failed');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+          fetch(form.action, options)
+            .then((response) => {
+              if (response.ok) {
+                alert("Login successful");
+              } else {
+                alert("Login failed");
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
         });
 
-        document.querySelector('form[action="/expenses"]').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            const data = 
-            {
-                category: formData.get('category'),
-                amount: parseInt(formData.get('amount'))
-            };
-            const options = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            };
+      document
+        .querySelector('form[action="/expenses"]')
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const form = e.target;
+          const formData = new FormData(form);
+          const data = {
+            category: formData.get("category"),
+            amount: parseInt(formData.get("amount")),
+          };
+          const options = {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          };
 
-            fetch(form.action, options)
-                .then(response => {
-                    if (response.ok) {
-                        alert('Expenses add successful');
-                    } else {
-                        alert('Expenses add failure');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+          fetch(form.action, options)
+            .then((response) => {
+              if (response.ok) {
+                alert("Expenses add successful");
+              } else {
+                alert("Expenses add failure");
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
         });
-                // Get Expenses Button Event Listener
-        document.getElementById('get-expenses').addEventListener('click', function() {
-            fetchExpenses();
+
+      // Get Expenses Button Event Listener
+      document
+        .getElementById("get-expenses")
+        .addEventListener("click", function () {
+          const sortBy = document.getElementById("sort-by").value;
+          fetchExpenses(sortBy);
         });
     </script>
-</body>
+  </body>
 </html>

@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sort"
+	"strconv"
+	"strings"
 	"text/template"
+	"time"
 )
 
 type User struct {
@@ -14,10 +18,17 @@ type User struct {
 }
 
 type Expense struct {
-	ID       int    `json:"id"`
-	Category string `json:"category"`
-	Amount   int    `json:"amount"`
+	ID       int       `json:"id"`
+	Date     time.Time `json:"date"`
+	Category string    `json:"category"`
+	Amount   int       `json:"amount"`
 }
+
+type ByDate []Expense
+
+func (a ByDate) Len() int           { return len(a) }
+func (a ByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByDate) Less(i, j int) bool { return a[i].Date.Before(a[j].Date) }
 
 var (
 	tmpl              *template.Template
@@ -100,6 +111,7 @@ func expensesHandler(w http.ResponseWriter, r *http.Request) {
 
 		currentExpensesID++
 		expense.ID = currentExpensesID
+		expense.Date = time.Now()
 		expenses = append(expenses, expense)
 		w.WriteHeader(http.StatusCreated)
 	} else if r.Method == http.MethodGet {
@@ -107,12 +119,55 @@ func expensesHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+
+		sortExpensesBy := r.URL.Query().Get("sort")
+
+		switch sortExpensesBy {
+		case "day":
+			sort.Sort(ByDate(expenses))
+		case "month":
+			sort.SliceStable(expenses, func(i, j int) bool {
+				return expenses[i].Date.Month() < expenses[j].Date.Month()
+			})
+		case "all":
+			sort.SliceStable(expenses, func(i, j int) bool {
+				return expenses[i].Date.Before(expenses[j].Date)
+			})
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		err := json.NewEncoder(w).Encode(expenses)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+	} else if r.Method == http.MethodDelete {
+		// Parse expense ID from URL path
+		pathParts := strings.Split(r.URL.Path, "/")
+		if len(pathParts) != 3 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expenseID := pathParts[2]
+
+		// Convert expenseID to an integer
+		expenseIDInt, err := strconv.Atoi(expenseID)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// Find and delete the expense from the expenses slice
+		for i, expense := range expenses {
+			if expense.ID == expenseIDInt {
+				expenses = append(expenses[:i], expenses[i+1:]...)
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+		return
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -128,6 +183,7 @@ func main() {
 	http.HandleFunc("/register", registerHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/expenses", expensesHandler)
+	http.HandleFunc("/expenses/", expensesHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
