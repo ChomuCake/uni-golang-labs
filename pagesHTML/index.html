@@ -69,9 +69,22 @@
     <p id="total-expenses"></p>
 
     <script>
+      // Function to save token in local storage
+      function saveToken(token) {
+        localStorage.setItem("token", token);
+      }
+
+      // Function to retrieve token from local storage
+      function getToken() {
+        return localStorage.getItem("token");
+      }
+
       function deleteExpense(expenseID) {
         const options = {
           method: "DELETE",
+          headers: {
+            Authorization: getToken(),
+          },
         };
         fetch("/expenses/" + expenseID, options)
           .then((response) => {
@@ -86,6 +99,7 @@
             console.error("Error:", error);
           });
       }
+
       // Fetch expenses data and display them in the table
       function fetchExpenses(sortBy) {
         let url = "/expenses";
@@ -93,7 +107,13 @@
           url += `?sort=${sortBy}`;
         }
 
-        fetch(url)
+        const options = {
+          headers: {
+            Authorization: getToken(),
+          },
+        };
+
+        fetch(url, options)
           .then((response) => response.json())
           .then((expenses) => {
             const expensesList = document.getElementById("expenses-list");
@@ -180,6 +200,8 @@
             .then((response) => {
               if (response.ok) {
                 alert("Login successful");
+                const token = response.headers.get("Authorization");
+                saveToken(token);
               } else {
                 alert("Login failed");
               }
@@ -203,6 +225,7 @@
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: getToken(),
             },
             body: JSON.stringify(data),
           };
