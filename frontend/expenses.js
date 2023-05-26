@@ -66,9 +66,9 @@ function fetchExpenses(sortBy) {
 
         totalAmount += expense.amount;
         actionCell.appendChild(deleteButton);
-        row.appendChild(actionCell);
         row.appendChild(categoryCell);
         row.appendChild(amountCell);
+        row.appendChild(actionCell); 
         expensesList.appendChild(row);
       });
 
