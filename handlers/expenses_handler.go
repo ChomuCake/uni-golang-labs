@@ -20,7 +20,30 @@ func (a ByDate) Len() int           { return len(a) }
 func (a ByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByDate) Less(i, j int) bool { return a[i].Date.Before(a[j].Date) }
 
+// DI
+
+type expenseHandler struct {
+	expenseDB db.ExpenseDB // Використовуємо загальний інтерфейс роботи з даними ExpenseDB(для витрат)
+	userDB    db.UserDB    // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+}
+
+// Функція ExpensesHandler, яка обробляє запити. У цій функції ми створюємо екземпляр expenseHandler
+// та передаємо йому залежність - екземпляр db.MySQLExpenseDB(конкретна реалізація)
+// та екземпляр db.MySQLUserDB(конкретна реалізація)
 func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
+	handler := &expenseHandler{
+		expenseDB: &db.MySQLExpenseDB{
+			DB: db.GetDB(),
+		},
+		userDB: &db.MySQLUserDB{
+			DB: db.GetDB(),
+		},
+	}
+
+	handler.Handle(w, r)
+}
+
+func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		var expense models.Expense
 		err := json.NewDecoder(r.Body).Decode(&expense)
@@ -51,7 +74,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Перевірка, чи користувач існує
-		existingUser, err := db.GetUserByID(int(userID))
+		existingUser, err := h.userDB.GetUserByID(int(userID))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -60,7 +83,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 		expense.Date = time.Now()
 		expense.UserID = existingUser.ID
 
-		err = db.AddExpense(expense)
+		err = h.expenseDB.AddExpense(expense)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -89,13 +112,13 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Перевірка, чи користувач існує
-		existingUser, err := db.GetUserByID(int(userID))
+		existingUser, err := h.userDB.GetUserByID(int(userID))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		userExpenses, err := db.GetUserExpenses(existingUser.ID)
+		userExpenses, err := h.expenseDB.GetUserExpenses(existingUser.ID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -166,7 +189,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Перевірка, чи користувач існує
-		_, err = db.GetUserByID(int(userID))
+		_, err = h.userDB.GetUserByID(int(userID))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -190,7 +213,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 		updatedExpense.Date = parsedDate
 
 		// Оновлення витрати
-		err = db.UpdateUserExpenses(updatedExpense)
+		err = h.expenseDB.UpdateUserExpenses(updatedExpense)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

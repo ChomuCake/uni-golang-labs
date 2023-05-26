@@ -8,10 +8,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// --------------------------- Логіка роботи з даними для юзера ---------------------------
+// --------------------------- Логіка роботи з даними для юзера(MySQL) ---------------------------
+type MySQLUserDB struct {
+	DB *sql.DB
+}
 
-func AddUser(user models.User) error {
-	stmt, err := db.Prepare("INSERT INTO users(username, password) VALUES(?, ?)")
+func (db *MySQLUserDB) AddUser(user models.User) error {
+	stmt, err := db.DB.Prepare("INSERT INTO users(username, password) VALUES(?, ?)")
 	if err != nil {
 		return err
 	}
@@ -25,28 +28,28 @@ func AddUser(user models.User) error {
 	return nil
 }
 
-func GetUserByUsernameAndPassword(username, password string) (models.User, error) {
+func (db *MySQLUserDB) GetUserByUsernameAndPassword(username, password string) (models.User, error) {
 	var user models.User
-	err := db.QueryRow("SELECT id, username FROM users WHERE username = ? AND password = ?", username, password).Scan(&user.ID, &user.Username)
+	err := db.DB.QueryRow("SELECT id, username FROM users WHERE username = ? AND password = ?", username, password).Scan(&user.ID, &user.Username)
 	if err != nil {
 		return user, err
 	}
 	return user, nil
 }
 
-func GetUserByUsername(username string) (models.User, error) {
+func (db *MySQLUserDB) GetUserByUsername(username string) (models.User, error) {
 	var user models.User
-	err := db.QueryRow("SELECT id, username FROM users WHERE username = ?", username).Scan(&user.ID, &user.Username)
+	err := db.DB.QueryRow("SELECT id, username FROM users WHERE username = ?", username).Scan(&user.ID, &user.Username)
 	if err != nil {
 		return user, err
 	}
 	return user, nil
 }
 
-func GetUserByID(userID int) (models.User, error) {
+func (db *MySQLUserDB) GetUserByID(userID int) (models.User, error) {
 	// Виконання запиту до бази даних для отримання користувача за його ідентифікатором
 	query := "SELECT id, username FROM users WHERE id = ?"
-	row := db.QueryRow(query, userID)
+	row := db.DB.QueryRow(query, userID)
 
 	var user models.User
 	err := row.Scan(&user.ID, &user.Username)

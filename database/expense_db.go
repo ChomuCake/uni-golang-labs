@@ -1,16 +1,21 @@
 package database
 
 import (
+	"database/sql"
+
 	"github.com/ChomuCake/uni-golang-labs/models"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// --------------------------- Логіка роботи з даними для витрат ---------------------------
+// --------------------------- Логіка роботи з даними для витрат (MySQL) ---------------------------
+type MySQLExpenseDB struct {
+	DB *sql.DB
+}
 
-func GetUserExpenses(userID int) ([]models.Expense, error) {
+func (db *MySQLExpenseDB) GetUserExpenses(userID int) ([]models.Expense, error) {
 	// Виконання запиту до бази даних для отримання витрат користувача за його ідентифікатором
 	query := "SELECT id, amount, category, date FROM expenses WHERE user_id = ?"
-	rows, err := db.Query(query, userID)
+	rows, err := db.DB.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +38,10 @@ func GetUserExpenses(userID int) ([]models.Expense, error) {
 	return expenses, nil
 }
 
-func AddExpense(expense models.Expense) error {
+func (db *MySQLExpenseDB) AddExpense(expense models.Expense) error {
 	// Виконання запиту до бази даних для збереження витрати
 	query := "INSERT INTO expenses (amount, category, date, user_id) VALUES (?, ?, ?, ?)"
-	_, err := db.Exec(query, expense.Amount, expense.Category, expense.Date, expense.UserID)
+	_, err := db.DB.Exec(query, expense.Amount, expense.Category, expense.Date, expense.UserID)
 	if err != nil {
 		return err
 	}
@@ -44,10 +49,10 @@ func AddExpense(expense models.Expense) error {
 	return nil
 }
 
-func DeleteExpense(expenseID string) error {
+func (db *MySQLExpenseDB) DeleteExpense(expenseID string) error {
 	// Виконання запиту до бази даних для видалення витрати за її ідентифікатором
 	query := "DELETE FROM expenses WHERE id = ?"
-	_, err := db.Exec(query, expenseID)
+	_, err := db.DB.Exec(query, expenseID)
 	if err != nil {
 		return err
 	}
@@ -55,10 +60,10 @@ func DeleteExpense(expenseID string) error {
 	return nil
 }
 
-func UpdateUserExpenses(expense models.Expense) error {
+func (db *MySQLExpenseDB) UpdateUserExpenses(expense models.Expense) error {
 	// Виконання запиту до бази даних для оновлення витрати
 	query := "UPDATE expenses SET amount = ?, category = ?, date = ? WHERE id = ?"
-	_, err := db.Exec(query, expense.Amount, expense.Category, expense.Date, expense.ID)
+	_, err := db.DB.Exec(query, expense.Amount, expense.Category, expense.Date, expense.ID)
 	if err != nil {
 		return err
 	}

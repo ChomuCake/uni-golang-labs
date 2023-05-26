@@ -11,7 +11,33 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+// DI
+
+type userHandler struct {
+	userDB db.UserDB // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+}
+
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+	handler := &userHandler{
+		userDB: &db.MySQLUserDB{
+			DB: db.GetDB(),
+		},
+	}
+
+	handler.regHandle(w, r)
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	handler := &userHandler{
+		userDB: &db.MySQLUserDB{
+			DB: db.GetDB(),
+		},
+	}
+
+	handler.loginHandle(w, r)
+}
+
+func (h *userHandler) regHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -25,14 +51,14 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.GetUserByUsername(user.Username)
+	_, err = h.userDB.GetUserByUsername(user.Username)
 	if err == nil {
 		w.Header().Set("X-Error-Message", "User with this name is already registered")
 		w.WriteHeader(http.StatusConflict) // Код 409 - Conflict, якщо користувач вже існує
 		return
 	}
 
-	err = db.AddUser(user)
+	err = h.userDB.AddUser(user)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusConflict)
@@ -45,7 +71,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) loginHandle(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -53,7 +79,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingUser, err := db.GetUserByUsernameAndPassword(user.Username, user.Password)
+	existingUser, err := h.userDB.GetUserByUsernameAndPassword(user.Username, user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusUnauthorized)
