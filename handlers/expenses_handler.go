@@ -105,11 +105,31 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 
 		switch sortExpensesBy {
 		case "day":
-			sort.Sort(ByDate(userExpenses))
+			today := time.Now().Truncate(24 * time.Hour) // Отримуємо поточну дату без часу
+			var todayExpenses []models.Expense
+
+			// Фільтруємо витрати за сьогоднішній день
+			for _, expense := range userExpenses {
+				if expense.Date.Year() == today.Year() &&
+					expense.Date.Month() == today.Month() &&
+					expense.Date.Day() == today.Day() {
+					todayExpenses = append(todayExpenses, expense)
+				}
+			}
+			userExpenses = todayExpenses
+
 		case "month":
-			sort.SliceStable(userExpenses, func(i, j int) bool {
-				return userExpenses[i].Date.Month() < userExpenses[j].Date.Month()
-			})
+			month := time.Now().Month() // Поточний місяць
+			var monthExpenses []models.Expense
+
+			// Фільтруємо витрати за поточний місяць
+			for _, expense := range userExpenses {
+				if expense.Date.Month() == month {
+					monthExpenses = append(monthExpenses, expense)
+				}
+			}
+			userExpenses = monthExpenses
+
 		case "all":
 			sort.SliceStable(userExpenses, func(i, j int) bool {
 				return userExpenses[i].Date.Before(userExpenses[j].Date)

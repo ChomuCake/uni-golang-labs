@@ -30,7 +30,8 @@ func init() {
 func main() {
 	defer db.CloseDB()
 
-	http.HandleFunc("/", mainHandler)
+	fs := http.FileServer(http.Dir("./frontend"))
+	http.Handle("/", fs)
 	http.HandleFunc("/register", handlers.RegisterHandler)
 	http.HandleFunc("/login", handlers.LoginHandler)
 	http.HandleFunc("/expenses", handlers.ExpensesHandler)
