@@ -142,28 +142,57 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	} else if r.Method == http.MethodDelete {
+	} else if r.Method == http.MethodPut {
 		// Отримання токена з заголовка авторизації
-		tokenString := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		tokenString := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 
 		// Перевірка токена
-		_, err := util.VerifyToken(tokenString)
+		token, err := util.VerifyToken(tokenString)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		// Розбиття URL шляху для отримання ID витрати
-		pathParts := strings.Split(r.URL.Path, "/")
-		if len(pathParts) != 3 {
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		userID, ok := claims["id"].(float64)
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		// Перевірка, чи користувач існує
+		_, err = db.GetUserByID(int(userID))
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		var updatedExpense models.Expense
+		err = json.NewDecoder(r.Body).Decode(&updatedExpense)
+		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		expenseID := pathParts[2]
 
-		err = db.DeleteExpense(expenseID)
+		// Парсинг рядкового значення дати
+		parsedDate, err := time.Parse("2006-01-02", updatedExpense.RawDate)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// Оновлення поля Date
+		updatedExpense.Date = parsedDate
+
+		// Оновлення витрати
+		err = db.UpdateUserExpenses(updatedExpense)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
@@ -171,4 +200,5 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+
 }

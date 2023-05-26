@@ -54,3 +54,14 @@ func DeleteExpense(expenseID string) error {
 
 	return nil
 }
+
+func UpdateUserExpenses(expense models.Expense) error {
+	// Виконання запиту до бази даних для оновлення витрати
+	query := "UPDATE expenses SET amount = ?, category = ?, date = ? WHERE id = ?"
+	_, err := db.Exec(query, expense.Amount, expense.Category, expense.Date, expense.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -56,21 +56,30 @@ function fetchExpenses(sortBy) {
         const amountCell = document.createElement("td");
         const actionCell = document.createElement("td");
         const deleteButton = document.createElement("button");
-
+        const updateButton = document.createElement("button");
+      
         categoryCell.innerText = expense.category;
         amountCell.innerText = expense.amount;
         deleteButton.innerText = "Delete";
+        updateButton.innerText = "Update";
+      
         deleteButton.addEventListener("click", function () {
           deleteExpense(expense.id);
         });
-
+      
+        updateButton.addEventListener("click", function () {
+            openUpdateExpensePage(expense.id);
+        });
+      
         totalAmount += expense.amount;
         actionCell.appendChild(deleteButton);
+        actionCell.appendChild(updateButton);
         row.appendChild(categoryCell);
         row.appendChild(amountCell);
-        row.appendChild(actionCell); 
+        row.appendChild(actionCell);
         expensesList.appendChild(row);
       });
+      
 
       const totalExpenses = document.getElementById("total-expenses");
       totalExpenses.innerText = `Total: $${totalAmount}`;
@@ -117,3 +126,8 @@ document.getElementById("get-expenses").addEventListener("click", function () {
   const sortBy = document.getElementById("sort-by").value;
   fetchExpenses(sortBy);
 });
+
+function openUpdateExpensePage(expenseID) {
+    window.location.href = "expensesupdate.html?expenseID=" + expenseID;
+  }
+  
