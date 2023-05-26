@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Finance Tracker</title>
+  </head>
+  <body>
+    <h1>Finance Tracker</h1>
+
+    <!-- Expenses Form -->
+    <h2>Add Expense</h2>
+    <form action="/expenses" method="POST">
+      <label for="category">Category:</label>
+      <input type="text" id="category" name="category" required /><br />
+
+      <label for="amount">Amount:</label>
+      <input type="number" id="amount" name="amount" required /><br />
+
+      <input type="submit" value="Add Expense" />
+    </form>
+
+    <!-- Expenses Table -->
+    <h2>Expenses</h2>
+    <div>
+      Sort By:
+      <select id="sort-by" name="sort-by">
+        <option value="day">Day</option>
+        <option value="month">Month</option>
+        <option value="all">All</option>
+      </select>
+      <button id="get-expenses">Get Expenses</button>
+    </div>
+    <table id="expenses-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="expenses-list"></tbody>
+    </table>
+
+    <!-- Total Expenses -->
+    <p id="total-expenses"></p>
+
+    <script src="token.js"></script>
+    <script src="expenses.js"></script>
+
+  </body>
+</html>

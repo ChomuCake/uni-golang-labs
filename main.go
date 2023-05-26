@@ -12,15 +12,8 @@ import (
 
 var tmpl *template.Template
 
-func mainHandler(w http.ResponseWriter, r *http.Request) {
-	err := tmpl.ExecuteTemplate(w, "index.html", nil)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
 func init() {
-	tmpl = template.Must(template.ParseFiles("frontend/index.html"))
+	tmpl = template.Must(template.ParseGlob("frontend/*.html"))
 	err := db.InitDB()
 	if err != nil {
 		log.Fatal(err)
@@ -32,6 +25,7 @@ func main() {
 
 	fs := http.FileServer(http.Dir("./frontend"))
 	http.Handle("/", fs)
+
 	http.HandleFunc("/register", handlers.RegisterHandler)
 	http.HandleFunc("/login", handlers.LoginHandler)
 	http.HandleFunc("/expenses", handlers.ExpensesHandler)
