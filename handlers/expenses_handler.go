@@ -10,7 +10,6 @@ import (
 	db "github.com/ChomuCake/uni-golang-labs/database"
 	"github.com/ChomuCake/uni-golang-labs/models"
 	"github.com/ChomuCake/uni-golang-labs/util"
-	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -23,8 +22,9 @@ func (a ByDate) Less(i, j int) bool { return a[i].Date.Before(a[j].Date) }
 // DI
 
 type expenseHandler struct {
-	expenseDB db.ExpenseDB // Використовуємо загальний інтерфейс роботи з даними ExpenseDB(для витрат)
-	userDB    db.UserDB    // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+	expenseDB db.ExpenseDB      // Використовуємо загальний інтерфейс роботи з даними ExpenseDB(для витрат)
+	userDB    db.UserDB         // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+	TokenMng  util.TokenManager // Використовуємо загальний інтерфейс роботи з токенами
 }
 
 // Функція ExpensesHandler, яка обробляє запити. У цій функції ми створюємо екземпляр expenseHandler
@@ -38,6 +38,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 		userDB: &db.MySQLUserDB{
 			DB: db.GetDB(),
 		},
+		TokenMng: &util.JWTTokenManager{},
 	}
 
 	handler.Handle(w, r)
@@ -56,23 +57,17 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		tokenString := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 
 		// Перевірка токена
-		token, err := util.VerifyToken(tokenString)
+		token, err := h.TokenMng.VerifyToken(tokenString)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
+		userID, err := h.TokenMng.ExtractUserIDFromToken(token)
+		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		userID, ok := claims["id"].(float64)
-		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
 		// Перевірка, чи користувач існує
 		existingUser, err := h.userDB.GetUserByID(int(userID))
 		if err != nil {
@@ -94,23 +89,17 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		tokenString := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
 		// Перевірка токена
-		token, err := util.VerifyToken(tokenString)
+		token, err := h.TokenMng.VerifyToken(tokenString)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
+		userID, err := h.TokenMng.ExtractUserIDFromToken(token)
+		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		userID, ok := claims["id"].(float64)
-		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
 		// Перевірка, чи користувач існує
 		existingUser, err := h.userDB.GetUserByID(int(userID))
 		if err != nil {
@@ -170,24 +159,17 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		tokenString := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 
 		// Перевірка токена
-		token, err := util.VerifyToken(tokenString)
+		token, err := h.TokenMng.VerifyToken(tokenString)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
+		userID, err := h.TokenMng.ExtractUserIDFromToken(token)
+		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-
-		userID, ok := claims["id"].(float64)
-		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
 		// Перевірка, чи користувач існує
 		_, err = h.userDB.GetUserByID(int(userID))
 		if err != nil {

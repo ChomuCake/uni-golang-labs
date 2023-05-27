@@ -14,7 +14,8 @@ import (
 // DI
 
 type userHandler struct {
-	userDB db.UserDB // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+	userDB   db.UserDB         // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+	TokenMng util.TokenManager // Використовуємо загальний інтерфейс роботи з токенами
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +33,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		userDB: &db.MySQLUserDB{
 			DB: db.GetDB(),
 		},
+		TokenMng: &util.JWTTokenManager{},
 	}
 
 	handler.loginHandle(w, r)
@@ -89,7 +91,7 @@ func (h *userHandler) loginHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := util.GenerateToken(existingUser)
+	tokenString, err := h.TokenMng.GenerateToken(existingUser)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
