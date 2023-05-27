@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql" // only for sql.ErrNoRows
 	"errors"
 	"fmt"
 	"net/http"
@@ -60,19 +61,51 @@ func (db *MockUserDB) GetUserByID(userID int) (models.User, error) {
 	if userID == 3 {
 		return models.User{ID: 3, Username: "Joe Doe"}, nil
 	}
-	return models.User{}, errors.New("user not found")
+	return models.User{}, errors.New("server error")
 
 }
 
 func (db *MockUserDB) AddUser(user models.User) error {
+	if user.Username == "ErrNoRows" {
+		return sql.ErrNoRows
+	}
+
+	if user.Username == "ServerError" {
+		return errors.New("server error")
+	}
 	return nil
 }
 
 func (db *MockUserDB) GetUserByUsername(username string) (models.User, error) {
+	if username == "ErrNoRows" {
+		return models.User{}, errors.New("server error")
+	}
+
+	if username == "ServerError" {
+		return models.User{}, errors.New("server error")
+	}
+
+	if username == "Reg" {
+		return models.User{}, errors.New("server error")
+	}
+
 	return models.User{ID: 1, Username: "John Doe"}, nil
 }
 
 func (db *MockUserDB) GetUserByUsernameAndPassword(username, password string) (models.User, error) {
+	if username == "ErrNoRows" {
+		return models.User{}, sql.ErrNoRows
+	}
+
+	if username == "ServerError" {
+		return models.User{}, errors.New("server error")
+
+	}
+
+	if username == "Incorrect" {
+		return models.User{ID: -1, Username: "Incorrect"}, nil
+	}
+
 	return models.User{ID: 1, Username: "John Doe"}, nil
 }
 
@@ -94,6 +127,10 @@ func (tm *MockTokenManager) ExtractUserIDFromToken(token interface{}) (int, erro
 }
 
 func (tm *MockTokenManager) GenerateToken(user models.User) (string, error) {
+	if user.Username == "Incorrect" {
+		return "", jwt.ErrInvalidKey
+	}
+
 	return "token", nil
 }
 

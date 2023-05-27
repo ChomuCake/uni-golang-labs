@@ -13,33 +13,33 @@ import (
 
 // DI
 
-type userHandler struct {
-	userDB   db.UserDB         // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+type UserHandler struct {
+	UserDB   db.UserDB         // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
 	TokenMng util.TokenManager // Використовуємо загальний інтерфейс роботи з токенами
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	handler := &userHandler{
-		userDB: &db.MySQLUserDB{
+	handler := &UserHandler{
+		UserDB: &db.MySQLUserDB{
 			DB: db.GetDB(),
 		},
 	}
 
-	handler.regHandle(w, r)
+	handler.RegHandle(w, r)
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	handler := &userHandler{
-		userDB: &db.MySQLUserDB{
+	handler := &UserHandler{
+		UserDB: &db.MySQLUserDB{
 			DB: db.GetDB(),
 		},
 		TokenMng: &util.JWTTokenManager{},
 	}
 
-	handler.loginHandle(w, r)
+	handler.LoginHandle(w, r)
 }
 
-func (h *userHandler) regHandle(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) RegHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -53,14 +53,14 @@ func (h *userHandler) regHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.userDB.GetUserByUsername(user.Username)
+	_, err = h.UserDB.GetUserByUsername(user.Username)
 	if err == nil {
 		w.Header().Set("X-Error-Message", "User with this name is already registered")
 		w.WriteHeader(http.StatusConflict) // Код 409 - Conflict, якщо користувач вже існує
 		return
 	}
 
-	err = h.userDB.AddUser(user)
+	err = h.UserDB.AddUser(user)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusConflict)
@@ -73,7 +73,13 @@ func (h *userHandler) regHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *userHandler) loginHandle(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) LoginHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+
+	}
+
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -81,7 +87,7 @@ func (h *userHandler) loginHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingUser, err := h.userDB.GetUserByUsernameAndPassword(user.Username, user.Password)
+	existingUser, err := h.UserDB.GetUserByUsernameAndPassword(user.Username, user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusUnauthorized)
