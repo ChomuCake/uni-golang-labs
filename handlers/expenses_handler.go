@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	db "github.com/ChomuCake/uni-golang-labs/database"
@@ -130,6 +131,15 @@ func (h *ExpenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			sort.SliceStable(userExpenses, func(i, j int) bool {
 				return userExpenses[i].Date.Before(userExpenses[j].Date)
 			})
+		default:
+			if sortExpensesBy != "" {
+				w.WriteHeader(http.StatusMisdirectedRequest)
+				return
+			}
+
+			sort.SliceStable(userExpenses, func(i, j int) bool {
+				return userExpenses[i].Date.Before(userExpenses[j].Date)
+			})
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -174,6 +184,36 @@ func (h *ExpenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		err = h.ExpenseDB.UpdateUserExpenses(updatedExpense)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	} else if r.Method == http.MethodDelete {
+		// Отримання айді користувача з заголовка авторизації
+		userID, err := h.TokenMng.ExtractUserIDFromRequest(r)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		// Перевірка, чи користувач існує
+		_, err = h.UserDB.GetUserByID(int(userID))
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		// Розбиття URL шляху для отримання ID витрати
+		pathParts := strings.Split(r.URL.Path, "/")
+		if len(pathParts) != 3 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		expenseID := pathParts[2]
+
+		err = h.ExpenseDB.DeleteExpense(expenseID)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
