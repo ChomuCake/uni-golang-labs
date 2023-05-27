@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
 	db "github.com/ChomuCake/uni-golang-labs/database"
@@ -21,9 +20,9 @@ func (a ByDate) Less(i, j int) bool { return a[i].Date.Before(a[j].Date) }
 
 // DI
 
-type expenseHandler struct {
-	expenseDB db.ExpenseDB      // Використовуємо загальний інтерфейс роботи з даними ExpenseDB(для витрат)
-	userDB    db.UserDB         // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
+type ExpenseHandler struct {
+	ExpenseDB db.ExpenseDB      // Використовуємо загальний інтерфейс роботи з даними ExpenseDB(для витрат)
+	UserDB    db.UserDB         // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
 	TokenMng  util.TokenManager // Використовуємо загальний інтерфейс роботи з токенами
 }
 
@@ -31,11 +30,11 @@ type expenseHandler struct {
 // та передаємо йому залежність - екземпляр db.MySQLExpenseDB(конкретна реалізація)
 // та екземпляр db.MySQLUserDB(конкретна реалізація)
 func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
-	handler := &expenseHandler{
-		expenseDB: &db.MySQLExpenseDB{
+	handler := &ExpenseHandler{
+		ExpenseDB: &db.MySQLExpenseDB{
 			DB: db.GetDB(),
 		},
-		userDB: &db.MySQLUserDB{
+		UserDB: &db.MySQLUserDB{
 			DB: db.GetDB(),
 		},
 		TokenMng: &util.JWTTokenManager{},
@@ -44,7 +43,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 	handler.Handle(w, r)
 }
 
-func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *ExpenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		var expense models.Expense
 		err := json.NewDecoder(r.Body).Decode(&expense)
@@ -53,23 +52,15 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Отримання токена з заголовка авторизації
-		tokenString := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
-
-		// Перевірка токена
-		token, err := h.TokenMng.VerifyToken(tokenString)
+		// Отримання айді користувача з заголовка авторизації
+		userID, err := h.TokenMng.ExtractUserIDFromRequest(r)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		userID, err := h.TokenMng.ExtractUserIDFromToken(token)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
 		// Перевірка, чи користувач існує
-		existingUser, err := h.userDB.GetUserByID(int(userID))
+		existingUser, err := h.UserDB.GetUserByID(int(userID))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -78,7 +69,7 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		expense.Date = time.Now()
 		expense.UserID = existingUser.ID
 
-		err = h.expenseDB.AddExpense(expense)
+		err = h.ExpenseDB.AddExpense(expense)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -86,28 +77,21 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusCreated)
 	} else if r.Method == http.MethodGet {
-		tokenString := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-
-		// Перевірка токена
-		token, err := h.TokenMng.VerifyToken(tokenString)
+		// Отримання айді користувача з заголовка авторизації
+		userID, err := h.TokenMng.ExtractUserIDFromRequest(r)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		userID, err := h.TokenMng.ExtractUserIDFromToken(token)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
 		// Перевірка, чи користувач існує
-		existingUser, err := h.userDB.GetUserByID(int(userID))
+		existingUser, err := h.UserDB.GetUserByID(int(userID))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		userExpenses, err := h.expenseDB.GetUserExpenses(existingUser.ID)
+		userExpenses, err := h.ExpenseDB.GetUserExpenses(existingUser.ID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -155,23 +139,15 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if r.Method == http.MethodPut {
-		// Отримання токена з заголовка авторизації
-		tokenString := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
-
-		// Перевірка токена
-		token, err := h.TokenMng.VerifyToken(tokenString)
+		// Отримання айді користувача з заголовка авторизації
+		userID, err := h.TokenMng.ExtractUserIDFromRequest(r)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		userID, err := h.TokenMng.ExtractUserIDFromToken(token)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
 		// Перевірка, чи користувач існує
-		_, err = h.userDB.GetUserByID(int(userID))
+		_, err = h.UserDB.GetUserByID(int(userID))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -195,7 +171,7 @@ func (h *expenseHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		updatedExpense.Date = parsedDate
 
 		// Оновлення витрати
-		err = h.expenseDB.UpdateUserExpenses(updatedExpense)
+		err = h.ExpenseDB.UpdateUserExpenses(updatedExpense)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

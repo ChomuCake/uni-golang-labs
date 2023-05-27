@@ -1,6 +1,8 @@
 package util
 
 import (
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ChomuCake/uni-golang-labs/models"
@@ -60,4 +62,25 @@ func (tm *JWTTokenManager) ExtractUserIDFromToken(token interface{}) (int, error
 	}
 
 	return int(userID), nil
+}
+
+func (tm *JWTTokenManager) ExtractToken(r *http.Request) string {
+	// Отримання токена з заголовка авторизації
+	tokenString := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+	return tokenString
+}
+
+func (tm *JWTTokenManager) ExtractUserIDFromRequest(r *http.Request) (int, error) {
+	tokenString := tm.ExtractToken(r)
+
+	token, err := tm.VerifyToken(tokenString)
+	if err != nil {
+		return 0, err
+	}
+
+	userID, err := tm.ExtractUserIDFromToken(token)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
 }
