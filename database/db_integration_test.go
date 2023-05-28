@@ -18,7 +18,7 @@ const testDBName = "test_db"
 
 func InitTestDB() (*sql.DB, error) {
 	// Формування рядка підключення до тестової бази даних
-	dsn := "root:12345@tcp(localhost:3306)/test_db?parseTime=true"
+	dsn := "root:12345@tcp(localhost:3306)/" + testDBName + "?parseTime=true"
 
 	// Встановлення з'єднання з тестовою базою даних
 	db, err := sql.Open("mysql", dsn)
@@ -27,14 +27,14 @@ func InitTestDB() (*sql.DB, error) {
 	}
 
 	// Очищення тестової бази даних перед початком тестів
-	if err := clearTestDB(db); err != nil {
+	if err := СlearTestDB(db); err != nil {
 		return nil, fmt.Errorf("failed to clear test database: %v", err)
 	}
 
 	return db, nil
 }
 
-func clearTestDB(db *sql.DB) error {
+func СlearTestDB(db *sql.DB) error {
 	// Видалення і створення бази даних
 	_, err := db.Exec("DROP DATABASE IF EXISTS " + testDBName)
 	if err != nil {
