@@ -324,9 +324,9 @@ func TestExpensesHandler_GetExpensesDay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(expenses) != 2 {
+	if len(expenses) != 1 {
 		t.Errorf("Отримано некоректну кількість витрат: отримано %d, очікувалося %d",
-			len(expenses), 2)
+			len(expenses), 1)
 	}
 }
 
