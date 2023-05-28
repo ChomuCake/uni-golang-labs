@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Expense Update</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1 class="title">Expense Update</h1>
+
+    <!-- Update Expense Form -->
+    <form id="update-expense-form">
+      <h2 class="subtitle">Update Expense</h2>
+      <label for="update-category">Category:</label>
+      <input type="text" id="update-category" name="category" required /><br />
+
+      <label for="update-amount">Amount:</label>
+      <input type="number" id="update-amount" name="amount" required /><br />
+
+      <label for="update-date">Date:</label>
+      <input type="date" id="update-date" name="rawdate" required /><br />
+
+      <input type="submit" value="Update" class="button" />
+    </form>
+
+    <script src="expensesupdate.js"></script>
+  </body>
+</html>

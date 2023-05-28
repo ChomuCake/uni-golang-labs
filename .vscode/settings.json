@@ -1,0 +1,8 @@
+{
+    "files.watcherExclude": {
+        "**/target": true
+    },
+    "go.toolsEnvVars": {
+        "GO111MODULE": "auto"
+    }
+}

@@ -1,0 +1,79 @@
+/* Фоновий колір та стиль шрифту */
+body {
+    background-color: #1e1e1e;
+    color: #bfbfbf;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Заголовки */
+  h1.title {
+    color: #fff;
+    text-align: center;
+  }
+  
+  h2.subtitle {
+    color: #bfbfbf;
+  }
+  
+  /* Посилання та кнопки */
+  a.button,
+  input.button {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #334d66;
+    color: #bfbfbf;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+  
+  a.button:hover,
+  input.button:hover {
+    background-color: #446688;
+  }
+  
+  /* Таблиця */
+  table.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto;
+  }
+  
+  table.table th,
+  table.table td {
+    padding: 8px;
+    border-bottom: 1px solid #334d66;
+    text-align: center; 
+  }
+  
+  /* Загальні стилі */
+  .total {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2em;
+  }
+  
+  /* Стилі для options */
+  select#sort-by {
+    padding: 4px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+  
+  div#expenses-table {
+    text-align: center;
+  }
+  
+  button#get-expenses {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #334d66;
+    color: #bfbfbf;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+  
+  button#get-expenses:hover {
+    background-color: #446688;
+  }
