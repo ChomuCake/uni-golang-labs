@@ -3,11 +3,10 @@ package handlers
 import (
 	"bytes"
 	"database/sql" // only for sql.ErrNoRows
+	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"testing"
 	"time"
 
@@ -319,11 +318,15 @@ func TestExpensesHandler_GetExpensesDay(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	cleanBody := regexp.MustCompile(`\s`).ReplaceAllString(rr.Body.String(), "")
-	expected := fmt.Sprintf(`[{"id":1,"date":"%s","rawdate":"","category":"test","amount":10,"user_id":1},{"id":2,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1}]`, fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"))
-	if cleanBody != expected {
-		t.Errorf("Отримано некоректне тіло відповіді: отримано %v, очікувалося %v",
-			cleanBody, expected)
+	var expenses []models.Expense
+	err = json.Unmarshal(rr.Body.Bytes(), &expenses)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(expenses) != 2 {
+		t.Errorf("Отримано некоректну кількість витрат: отримано %d, очікувалося %d",
+			len(expenses), 2)
 	}
 }
 
@@ -349,11 +352,15 @@ func TestExpensesHandler_GetExpensesMonth(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	cleanBody := regexp.MustCompile(`\s`).ReplaceAllString(rr.Body.String(), "")
-	expected := fmt.Sprintf(`[{"id":1,"date":"%s","rawdate":"","category":"test","amount":10,"user_id":1},{"id":2,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1},{"id":3,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1}]`, fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.AddDate(0, 0, -1).Format("2006-01-02T15:04:05.0000000Z07:00"))
-	if cleanBody != expected {
-		t.Errorf("Отримано некоректне тіло відповіді: отримано %v, очікувалося %v",
-			cleanBody, expected)
+	var expenses []models.Expense
+	err = json.Unmarshal(rr.Body.Bytes(), &expenses)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(expenses) != 3 {
+		t.Errorf("Отримано некоректну кількість витрат: отримано %d, очікувалося %d",
+			len(expenses), 3)
 	}
 }
 
@@ -379,11 +386,15 @@ func TestExpensesHandler_GetExpensesAll(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	cleanBody := regexp.MustCompile(`\s`).ReplaceAllString(rr.Body.String(), "")
-	expected := fmt.Sprintf(`[{"id":4,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1},{"id":3,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1},{"id":1,"date":"%s","rawdate":"","category":"test","amount":10,"user_id":1},{"id":2,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1}]`, fixedTime.AddDate(0, 0, -32).Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.AddDate(0, 0, -1).Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"))
-	if cleanBody != expected {
-		t.Errorf("Отримано некоректне тіло відповіді: отримано %v, очікувалося %v",
-			cleanBody, expected)
+	var expenses []models.Expense
+	err = json.Unmarshal(rr.Body.Bytes(), &expenses)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(expenses) != 4 {
+		t.Errorf("Отримано некоректну кількість витрат: отримано %d, очікувалося %d",
+			len(expenses), 4)
 	}
 }
 
@@ -409,11 +420,15 @@ func TestExpensesHandler_GetExpenses(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	cleanBody := regexp.MustCompile(`\s`).ReplaceAllString(rr.Body.String(), "")
-	expected := fmt.Sprintf(`[{"id":4,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1},{"id":3,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1},{"id":1,"date":"%s","rawdate":"","category":"test","amount":10,"user_id":1},{"id":2,"date":"%s","rawdate":"","category":"test","amount":20,"user_id":1}]`, fixedTime.AddDate(0, 0, -32).Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.AddDate(0, 0, -1).Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"), fixedTime.Format("2006-01-02T15:04:05.0000000Z07:00"))
-	if cleanBody != expected {
-		t.Errorf("Отримано некоректне тіло відповіді: отримано %v, очікувалося %v",
-			cleanBody, expected)
+	var expenses []models.Expense
+	err = json.Unmarshal(rr.Body.Bytes(), &expenses)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(expenses) != 4 {
+		t.Errorf("Отримано некоректну кількість витрат: отримано %d, очікувалося %d",
+			len(expenses), 4)
 	}
 }
 

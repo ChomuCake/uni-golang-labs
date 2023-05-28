@@ -3,17 +3,13 @@ package main
 import (
 	"log"
 	"net/http"
-	"text/template"
 
 	db "github.com/ChomuCake/uni-golang-labs/database"
 	"github.com/ChomuCake/uni-golang-labs/handlers"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var tmpl *template.Template
-
 func init() {
-	tmpl = template.Must(template.ParseGlob("frontend/*.html"))
 	err := db.InitDB()
 	if err != nil {
 		log.Fatal(err)

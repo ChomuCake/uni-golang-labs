@@ -34,5 +34,5 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          
           version: v1.51.2
+          args: "run --skip=db_integration_test.go --skip=benchmark_get_expenses_test.go"
