@@ -10,12 +10,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type ByDate []models.Expense
-
-func (a ByDate) Len() int           { return len(a) }
-func (a ByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByDate) Less(i, j int) bool { return a[i].Date.Before(a[j].Date) }
-
 // інтерфейс expenseService, tokenManager описується в тому ж файлі що і використовується
 type expenseService interface {
 	CreateExpense(userID int, expense models.Expense) error
@@ -43,8 +37,8 @@ func NewExpenseHandler(expService expenseService, tokenMng tokenManager) *Expens
 func (h *ExpenseHandler) RegisterRoutes(router *httprouter.Router) {
 	router.POST("/expenses", h.CreateExpense)
 	router.GET("/expenses", h.GetExpenses)
-	router.PUT("/expenses", h.UpdateExpense)
 	router.DELETE("/expenses/:id", h.DeleteExpense)
+	router.PUT("/expenses/:id", h.UpdateExpense)
 }
 
 func (h *ExpenseHandler) CreateExpense(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -96,7 +90,7 @@ func (h *ExpenseHandler) GetExpenses(w http.ResponseWriter, r *http.Request, _ h
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	//w.WriteHeader(http.StatusOK)
 }
 
 func (h *ExpenseHandler) UpdateExpense(w http.ResponseWriter, r *http.Request, params httprouter.Params) {

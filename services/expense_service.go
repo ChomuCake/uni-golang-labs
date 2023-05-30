@@ -42,13 +42,8 @@ func (s *ExpenseService) CreateExpense(userID int, expense models.Expense) error
 	}
 
 	// Парсинг рядкового значення дати
-	parsedDate, err := time.Parse("2006-01-02", expense.RawDate)
-	if err != nil {
-		return errors.New("invalid date format")
-	}
-
-	// Оновлення поля Date
-	expense.Date = parsedDate
+	expense.Date = time.Now()
+	expense.UserID = userID
 
 	// Створення витрати
 	err = s.expenseDB.AddExpense(expense)
@@ -110,6 +105,10 @@ func (s *ExpenseService) GetExpenses(userID int, sortExpensesBy string) ([]model
 		sort.SliceStable(userExpenses, func(i, j int) bool {
 			return userExpenses[i].Date.Before(userExpenses[j].Date)
 		})
+	}
+
+	if userExpenses == nil {
+		userExpenses = []models.Expense{}
 	}
 
 	return userExpenses, nil

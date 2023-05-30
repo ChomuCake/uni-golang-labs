@@ -1,20 +1,8 @@
 const urlParams = new URLSearchParams(window.location.search);
 const expenseID = urlParams.get("expenseID");
-
-fetch("/expenses/" + expenseID)
-  .then((response) => response.json())
-  .then((expense) => {
-    const categoryInput = document.getElementById("update-category");
-    const amountInput = document.getElementById("update-amount");
-    const dateInput = document.getElementById("update-date");
-
-    categoryInput.value = expense.category;
-    amountInput.value = expense.amount;
-    dateInput.value = expense.date; 
-  })
-  .catch((error) => {
-    console.error("Error:", error);
-  });
+const categoryInput = document.getElementById("update-category");
+const amountInput = document.getElementById("update-amount");
+const dateInput = document.getElementById("update-date");
 
 document.getElementById("update-expense-form").addEventListener("submit", function (e) {
   e.preventDefault();
@@ -22,7 +10,7 @@ document.getElementById("update-expense-form").addEventListener("submit", functi
   const formData = new FormData(form);
   const data = {
     id: parseInt(expenseID),
-    rawdate: formData.get("rawdate"), 
+    rawdate: formData.get("rawdate"),
     category: formData.get("category"),
     amount: parseInt(formData.get("amount")),
   };

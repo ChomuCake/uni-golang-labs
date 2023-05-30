@@ -14,7 +14,7 @@ type JWTTokenManager struct{}
 
 var secretKey = []byte("fd9f5dc52a0b5728c5182c593e0fae7d821e6c7a0fe64b78e67450a0a6860d63")
 
-func (tm *JWTTokenManager) GenerateToken(user models.User) (string, error) {
+func (tm JWTTokenManager) GenerateToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":       user.ID,
 		"username": user.Username,
@@ -29,7 +29,7 @@ func (tm *JWTTokenManager) GenerateToken(user models.User) (string, error) {
 	return tokenString, nil
 }
 
-func (tm *JWTTokenManager) VerifyToken(tokenString string) (interface{}, error) {
+func (tm JWTTokenManager) VerifyToken(tokenString string) (interface{}, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
@@ -45,7 +45,7 @@ func (tm *JWTTokenManager) VerifyToken(tokenString string) (interface{}, error) 
 	return token, nil
 }
 
-func (tm *JWTTokenManager) ExtractUserIDFromToken(token interface{}) (int, error) {
+func (tm JWTTokenManager) ExtractUserIDFromToken(token interface{}) (int, error) {
 	parsedToken, ok := token.(*jwt.Token)
 	if !ok {
 		return 0, jwt.ErrInvalidKey
@@ -64,13 +64,13 @@ func (tm *JWTTokenManager) ExtractUserIDFromToken(token interface{}) (int, error
 	return int(userID), nil
 }
 
-func (tm *JWTTokenManager) ExtractToken(r *http.Request) string {
+func (tm JWTTokenManager) ExtractToken(r *http.Request) string {
 	// Отримання токена з заголовка авторизації
 	tokenString := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	return tokenString
 }
 
-func (tm *JWTTokenManager) ExtractUserIDFromRequest(r *http.Request) (int, error) {
+func (tm JWTTokenManager) ExtractUserIDFromRequest(r *http.Request) (int, error) {
 	tokenString := tm.ExtractToken(r)
 
 	token, err := tm.VerifyToken(tokenString)
