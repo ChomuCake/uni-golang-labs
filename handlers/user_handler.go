@@ -1,51 +1,41 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
-	db "github.com/ChomuCake/uni-golang-labs/database"
 	"github.com/ChomuCake/uni-golang-labs/models"
-	"github.com/ChomuCake/uni-golang-labs/util"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/julienschmidt/httprouter"
 )
 
-// DI
+type userService interface {
+	RegisterUser(user models.User) error
+	LoginUser(user models.User) (models.User, error)
+}
+
+type tokenManagerUser interface {
+	GenerateToken(user models.User) (string, error)
+}
 
 type UserHandler struct {
-	UserDB   db.UserDB         // Використовуємо загальний інтерфейс роботи з даними UserDB(для юзерів)
-	TokenMng util.TokenManager // Використовуємо загальний інтерфейс роботи з токенами
+	uService userService
+	tokenMng tokenManagerUser
 }
 
-func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	handler := &UserHandler{
-		UserDB: &db.MySQLUserDB{
-			DB: db.GetDB(),
-		},
+func NewUserHandler(uService userService, tokenMng tokenManagerUser) *UserHandler {
+	return &UserHandler{
+		uService: uService,
+		tokenMng: tokenMng,
 	}
-
-	handler.RegHandle(w, r)
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	handler := &UserHandler{
-		UserDB: &db.MySQLUserDB{
-			DB: db.GetDB(),
-		},
-		TokenMng: &util.JWTTokenManager{},
-	}
-
-	handler.LoginHandle(w, r)
+func (h *UserHandler) RegisterRoutesUser(router *httprouter.Router) {
+	router.POST("/register", h.RegisterUser)
+	router.POST("/login", h.LoginUser)
 }
 
-func (h *UserHandler) RegHandle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-
-	}
-
+func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -53,33 +43,15 @@ func (h *UserHandler) RegHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.UserDB.GetUserByUsername(user.Username)
-	if err == nil {
-		w.Header().Set("X-Error-Message", "User with this name is already registered")
-		w.WriteHeader(http.StatusConflict) // Код 409 - Conflict, якщо користувач вже існує
-		return
-	}
-
-	err = h.UserDB.AddUser(user)
+	err = h.uService.RegisterUser(user)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			w.WriteHeader(http.StatusConflict)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *UserHandler) LoginHandle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-
-	}
-
+func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -87,17 +59,13 @@ func (h *UserHandler) LoginHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingUser, err := h.UserDB.GetUserByUsernameAndPassword(user.Username, user.Password)
+	existingUser, err := h.uService.LoginUser(user)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	tokenString, err := h.TokenMng.GenerateToken(existingUser)
+	tokenString, err := h.tokenMng.GenerateToken(existingUser)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -6,22 +6,27 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var db *sql.DB
+type RealDatabase struct {
+	// реалізація основної бази даних
+	RealDBName string
+	db_real    *sql.DB
+}
 
-func InitDB() error {
+func (db *RealDatabase) InitDB() error {
+	db.RealDBName = "test"
 	var err error
-	dsn := "root:12345@tcp(localhost:3306)/test?parseTime=true"
-	db, err = sql.Open("mysql", dsn)
+	dsn := "root:12345@tcp(localhost:3306)/" + db.RealDBName + "?parseTime=true"
+	db.db_real, err = sql.Open("mysql", dsn)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetDB() *sql.DB {
-	return db
+func (db *RealDatabase) GetDB() *sql.DB {
+	return db.db_real
 }
 
-func CloseDB() {
-	db.Close()
+func (db *RealDatabase) CloseDB() {
+	db.db_real.Close()
 }
