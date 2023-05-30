@@ -1,7 +1,6 @@
-//nolint
 //------------------------Інтеграційний тест------------------------------
 
-package database
+package drepo
 
 import (
 	"database/sql"
@@ -15,45 +14,59 @@ import (
 	"github.com/ChomuCake/uni-golang-labs/models"
 )
 
-const testDBName = "test_db"
+type TestDatabase struct {
+	// реалізація тестової бaзи даних
+	testDBName string
+	db_test    *sql.DB
+}
 
-func InitTestDB() (*sql.DB, error) {
+func (db *TestDatabase) GetDB() *sql.DB {
+	return db.db_test
+}
+
+func (db *TestDatabase) InitDB() error {
 	// Формування рядка підключення до тестової бази даних
-	dsn := "root:12345@tcp(localhost:3306)/" + testDBName + "?parseTime=true"
+	db.testDBName = "test_db"
+	dsn := "root:12345@tcp(localhost:3306)/" + db.testDBName + "?parseTime=true"
 
 	// Встановлення з'єднання з тестовою базою даних
-	db, err := sql.Open("mysql", dsn)
+	var err error
+	db.db_test, err = sql.Open("mysql", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to test database: %v", err)
+		return fmt.Errorf("failed to connect to test database: %v", err)
 	}
 
 	// Очищення тестової бази даних перед початком тестів
-	if err := СlearTestDB(db); err != nil {
-		return nil, fmt.Errorf("failed to clear test database: %v", err)
+	if err := db.СlearTestDB(); err != nil {
+		return fmt.Errorf("failed to clear test database: %v", err)
 	}
 
-	return db, nil
+	return nil
 }
 
-func СlearTestDB(db *sql.DB) error {
+func (db *TestDatabase) CloseDB() {
+	db.db_test.Close()
+}
+
+func (db *TestDatabase) СlearTestDB() error {
 	// Видалення і створення бази даних
-	_, err := db.Exec("DROP DATABASE IF EXISTS " + testDBName)
+	_, err := db.db_test.Exec("DROP DATABASE IF EXISTS " + db.testDBName)
 	if err != nil {
 		return fmt.Errorf("failed to drop test database: %v", err)
 	}
 
-	_, err = db.Exec("CREATE DATABASE " + testDBName)
+	_, err = db.db_test.Exec("CREATE DATABASE " + db.testDBName)
 	if err != nil {
 		return fmt.Errorf("failed to create test database: %v", err)
 	}
 
-	_, err = db.Exec("USE " + testDBName)
+	_, err = db.db_test.Exec("USE " + db.testDBName)
 	if err != nil {
 		return fmt.Errorf("failed to switch to test database: %v", err)
 	}
 
 	// Створення таблиці `users`
-	_, err = db.Exec(`
+	_, err = db.db_test.Exec(`
 		CREATE TABLE users (
 			id INT AUTO_INCREMENT PRIMARY KEY,
 			username VARCHAR(255) NOT NULL,
@@ -65,7 +78,7 @@ func СlearTestDB(db *sql.DB) error {
 	}
 
 	// Створення таблиці `expenses`
-	_, err = db.Exec(`
+	_, err = db.db_test.Exec(`
 		CREATE TABLE expenses (
 			id INT AUTO_INCREMENT PRIMARY KEY,
 			date DATE NOT NULL,
@@ -83,21 +96,21 @@ func СlearTestDB(db *sql.DB) error {
 }
 
 func TestGetUserExpensesIntegration(t *testing.T) {
+	// Сворення тестової бд
+	db := &TestDatabase{}
+
 	// Підготовка тестової бази даних
-	testDB, err := InitTestDB()
+	err := db.InitDB()
 	if err != nil {
 		t.Fatalf("Failed to initialize test database: %v", err)
 	}
-	defer testDB.Close()
+	defer db.CloseDB()
 
-	// Створення тестового об'єкта бази даних
-	expenseDB := MySQLExpenseDB{
-		DB: testDB,
-	}
+	// Створення репо витрат
+	ExpenseDB := NewExpenseDBMySQL(db)
 
-	userDB := MySQLUserDB{
-		DB: testDB,
-	}
+	// Створення репо юзерів
+	userDB := NewUserDBMySQL(db)
 
 	newUser := models.User{
 		Username: "TestName",
@@ -157,14 +170,14 @@ func TestGetUserExpensesIntegration(t *testing.T) {
 	// Тестування створення і отримання витрат користувача
 	// Результат користувач повинен отримувати нову витрату після створення її у бд
 	t.Run("create and get UserExpneses", func(t *testing.T) {
-		err = expenseDB.AddExpense(newExpense)
+		err = ExpenseDB.AddExpense(newExpense)
 
 		if err != nil {
 			t.Errorf("failed to add expense with error: %v", err)
 		}
 
 		fmt.Println(newExpense)
-		expense, err := expenseDB.GetUserExpenses(expectedUser.ID)
+		expense, err := ExpenseDB.GetUserExpenses(expectedUser.ID)
 		if err != nil {
 			t.Errorf("failed to get user expneses with error: %v", err)
 		}
@@ -177,14 +190,14 @@ func TestGetUserExpensesIntegration(t *testing.T) {
 	// Тестування оновлення і отримання витрат користувача
 	// Результат користувач повинен отримувати оновлені витрати після оновлення їх у бд
 	t.Run("update and get UserExpnese", func(t *testing.T) {
-		err = expenseDB.UpdateUserExpenses(ExpensesUpdate)
+		err = ExpenseDB.UpdateUserExpenses(ExpensesUpdate)
 
 		if err != nil {
 			t.Errorf("failed update expense with error: %v", err)
 		}
 
 		fmt.Println(ExpensesUpdate)
-		expense, err := expenseDB.GetUserExpenses(expectedUser.ID)
+		expense, err := ExpenseDB.GetUserExpenses(expectedUser.ID)
 		if err != nil {
 			t.Errorf("failed to get user expneses with error: %v", err)
 		}
@@ -197,13 +210,13 @@ func TestGetUserExpensesIntegration(t *testing.T) {
 	// Тестування видалення і отримання витрат користувача
 	// Результат користувач повинен отримувати 0 витрат після видалення їх з бд
 	t.Run("delete and get UserExpnese", func(t *testing.T) {
-		err = expenseDB.DeleteExpense(strconv.Itoa(ExpensesUpdate.ID))
+		err = ExpenseDB.DeleteExpense(strconv.Itoa(ExpensesUpdate.ID))
 
 		if err != nil {
 			t.Errorf("failed to delete expense with error: %v", err)
 		}
 
-		expense, err := expenseDB.GetUserExpenses(expectedUser.ID)
+		expense, err := ExpenseDB.GetUserExpenses(expectedUser.ID)
 		if err != nil {
 			t.Errorf("failed to get user expneses with error: %v", err)
 		}

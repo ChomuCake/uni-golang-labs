@@ -6,7 +6,9 @@ import (
 
 	db "github.com/ChomuCake/uni-golang-labs/database"
 	"github.com/ChomuCake/uni-golang-labs/handlers"
+	"github.com/ChomuCake/uni-golang-labs/util"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/julienschmidt/httprouter"
 )
 
 func init() {
@@ -22,10 +24,11 @@ func main() {
 	fs := http.FileServer(http.Dir("./frontend"))
 	http.Handle("/", fs)
 
-	http.HandleFunc("/register", handlers.RegisterHandler)
-	http.HandleFunc("/login", handlers.LoginHandler)
-	http.HandleFunc("/expenses", handlers.ExpensesHandler)
-	http.HandleFunc("/expenses/", handlers.ExpensesHandler)
+	router := httprouter.New()
+	router.POST("/expenses", handlers.NewExpenseHandler(&db.MySQLExpenseDB{DB: db.GetDB()}, &db.MySQLUserDB{DB: db.GetDB()}, &util.JWTTokenManager{}).CreateExpense)
+	router.GET("/expenses", handlers.NewExpenseHandler(&db.MySQLExpenseDB{DB: db.GetDB()}, &db.MySQLUserDB{DB: db.GetDB()}, &util.JWTTokenManager{}).GetExpenses)
+	router.PUT("/expenses", handlers.NewExpenseHandler(&db.MySQLExpenseDB{DB: db.GetDB()}, &db.MySQLUserDB{DB: db.GetDB()}, &util.JWTTokenManager{}).UpdateExpense)
+	router.DELETE("/expenses/:id", handlers.NewExpenseHandler(&db.MySQLExpenseDB{DB: db.GetDB()}, &db.MySQLUserDB{DB: db.GetDB()}, &util.JWTTokenManager{}).DeleteExpense)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
